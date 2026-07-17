@@ -2,7 +2,7 @@
 
 Elix es un compañero animado transparente para Windows que observa los eventos locales de Codex y reacciona según la actividad actual. Su nombre oficial está integrado en el ejecutable y el paquete; no es editable desde la interfaz. No lee ni envía el contenido de las conversaciones: clasifica solamente tipos de evento y nombres de herramientas guardados por Codex en `.codex/sessions`.
 
-Versión actual: **1.4.2**.
+Versión actual: **1.5.0**.
 
 ## Instalar en otra PC
 
@@ -36,8 +36,9 @@ Ejecutar nuevamente el mismo comando actualiza una instalación existente y cons
 - Creando: bomba/escudo, giro y espada.
 - Viendo/analizando: revisión, luz del bosque y arco.
 - Esperando, éxito o fallo: gestos específicos ya existentes y nuevas variantes.
+- Cuando Codex queda inactivo, Elix cobra vida a intervalos irregulares: parpadea, respira o sonríe suavemente sin repetir la misma microacción dos veces seguidas.
 
-Cada actividad reproduce una sola secuencia y conserva su pose final. No vuelve a animarse hasta que Codex cambia de actividad. Al elegir una nueva secuencia, el selector descarta tanto la última variante global como la última usada para ese estado.
+Cada actividad reproduce una sola secuencia y conserva su pose final. La única excepción es el pulso ambiental de inactividad, que reproduce una microacción ocasional y vuelve a quedarse quieto. Al elegir una nueva secuencia, el selector descarta tanto la última variante global como la última usada para ese estado.
 
 ## Controles
 

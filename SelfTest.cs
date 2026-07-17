@@ -46,6 +46,16 @@ public static class SelfTest
             ok &= oneShotOk;
             lines.Add($"one-shot runtime: first={firstClip}, stopped={stoppedAfterOnePass}, same-state-hold={sameStateStayedStill}, transition={transitionedOnce}, second-stopped={secondPassStopped}, ok={oneShotOk}");
 
+            var ambientStarted = animation.PlayOneShotClip("idle-breathe")
+                && animation.IsPlaying
+                && animation.CurrentClipName == "idle-breathe";
+            PumpDispatcher(TimeSpan.FromSeconds(2));
+            var ambientStopped = !animation.IsPlaying
+                && animation.CurrentClipName == "idle-breathe";
+            var ambientOneShotOk = ambientStarted && ambientStopped;
+            ok &= ambientOneShotOk;
+            lines.Add($"ambient idle one-shot: started={ambientStarted}, stopped={ambientStopped}, ok={ambientOneShotOk}");
+
             animation.ForceLoopingClip("running-right");
             PumpDispatcher(TimeSpan.FromMilliseconds(1900));
             var rightLooped = animation.IsPlaying
@@ -123,6 +133,22 @@ public static class SelfTest
                 == AnimationCatalog.InteractiveCombatClips.Count;
         ok &= combatPoolOk;
         lines.Add($"interactive combat pool: clips={string.Join(',', AnimationCatalog.InteractiveCombatClips)}, ok={combatPoolOk}");
+
+        var idleLifePool = AnimationCatalog.IdleLifeClips
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var idleLifeDelaysOk = Enumerable.Range(0, 50)
+            .Select(seed => IdleLifePolicy.NextDelay(random: new Random(seed)).TotalMilliseconds)
+            .All(delay => delay >= IdleLifePolicy.MinDelayMilliseconds
+                && delay <= IdleLifePolicy.MaxDelayMilliseconds);
+        var idleLifeNoImmediateRepeat = Enumerable.Range(0, 50)
+            .Select(seed => IdleLifePolicy.SelectNextClip(idleLifePool, "idle", new Random(seed)))
+            .All(clip => clip is not null && !string.Equals(clip, "idle", StringComparison.OrdinalIgnoreCase));
+        var idleLifeOk = idleLifePool.Count >= 3
+            && idleLifeDelaysOk
+            && idleLifeNoImmediateRepeat;
+        ok &= idleLifeOk;
+        lines.Add($"ambient idle life: clips={string.Join(',', idleLifePool)}, delay={IdleLifePolicy.MinDelayMilliseconds}-{IdleLifePolicy.MaxDelayMilliseconds}ms, no-repeat={idleLifeNoImmediateRepeat}, ok={idleLifeOk}");
 
         var hookCases = new Dictionary<Vector, bool>
         {

@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer? _demoTimer;
     private readonly DispatcherTimer _hookPullTimer;
     private readonly DispatcherTimer _ctrlClickTimer;
+    private readonly DispatcherTimer _idleLifeTimer;
     private readonly MenuItem _statusItem;
     private readonly MenuItem _pauseItem;
     private readonly MenuItem _startupItem;
@@ -60,6 +61,8 @@ public partial class MainWindow : Window
     private string? _lastCombatClip;
     private Point _teleportWindowTarget;
     private bool _teleportPositionMoved;
+    private string? _ambientIdleClip;
+    private string? _lastAmbientIdleClip;
 
     public MainWindow(bool demoMode)
     {
@@ -120,6 +123,8 @@ public partial class MainWindow : Window
             Interval = TimeSpan.FromMilliseconds(InteractionPolicy.CtrlSingleClickDelayMilliseconds)
         };
         _ctrlClickTimer.Tick += OnCtrlClickTimer;
+        _idleLifeTimer = new DispatcherTimer();
+        _idleLifeTimer.Tick += OnIdleLifeTick;
 
         if (demoMode)
         {
@@ -153,6 +158,7 @@ public partial class MainWindow : Window
         _monitor.Start();
         _demoTimer?.Start();
         UpdateStatus(ActivityState.Idle);
+        ScheduleIdleLife(initial: true);
     }
 
     private void OnActivityDetected(ActivitySignal signal)
@@ -176,6 +182,14 @@ public partial class MainWindow : Window
         _activity = signal.State;
         _currentPriority = signal.Priority;
         _lockedUntil = now + signal.Hold;
+        if (signal.State == ActivityState.Idle)
+        {
+            ScheduleIdleLife(initial: true);
+        }
+        else
+        {
+            StopIdleLife();
+        }
         _animations.SetActivity(signal.State);
         UpdateStatus(signal.State);
     }
@@ -197,6 +211,14 @@ public partial class MainWindow : Window
         {
             _activity = fallback;
             _currentPriority = fallback == ActivityState.Thinking ? 30 : 10;
+            if (fallback == ActivityState.Idle)
+            {
+                ScheduleIdleLife(initial: true);
+            }
+            else
+            {
+                StopIdleLife();
+            }
             _animations.SetActivity(fallback);
             UpdateStatus(fallback);
         }
@@ -204,6 +226,12 @@ public partial class MainWindow : Window
 
     private void OnClipChanged(string clip)
     {
+        if (_activity == ActivityState.Idle
+            && AnimationCatalog.IdleLifeClips.Contains(clip, StringComparer.OrdinalIgnoreCase))
+        {
+            _lastAmbientIdleClip = clip;
+        }
+
         _animationPhase = _interactiveMode switch
         {
             InteractiveMode.Combat => "interactive-combat",
@@ -214,11 +242,26 @@ public partial class MainWindow : Window
         };
         var suffix = InteractiveStatusSuffix()
             ?? (_pulling ? "desplazándose con el gancho" : _hookMode ? "gancho extendido" : null);
+        if (_ambientIdleClip is not null
+            && string.Equals(clip, _ambientIdleClip, StringComparison.OrdinalIgnoreCase))
+        {
+            suffix = IdleLifeLabel(clip);
+        }
         UpdateStatus(_activity, suffix);
     }
 
     private void OnClipCompleted(string clip)
     {
+        if (_ambientIdleClip is not null
+            && string.Equals(clip, _ambientIdleClip, StringComparison.OrdinalIgnoreCase))
+        {
+            _ambientIdleClip = null;
+            _animationPhase = "holding";
+            UpdateStatus(_activity, _monitor.IsPaused ? "pausado" : null);
+            ScheduleIdleLife();
+            return;
+        }
+
         if (_interactiveMode == InteractiveMode.Combat
             && AnimationCatalog.InteractiveCombatClips.Contains(clip, StringComparer.OrdinalIgnoreCase))
         {
@@ -252,11 +295,16 @@ public partial class MainWindow : Window
             _activity = ActivityState.Idle;
             _animations.SetActivity(ActivityState.Idle);
             UpdateStatus(ActivityState.Idle, "pausado");
+            ScheduleIdleLife(initial: true);
         }
         else
         {
             _lockedUntil = DateTime.MinValue;
             UpdateStatus(_activity);
+            if (_activity == ActivityState.Idle)
+            {
+                ScheduleIdleLife(initial: true);
+            }
         }
         SaveSettings();
     }
@@ -789,6 +837,76 @@ public partial class MainWindow : Window
         SettingsStore.Save(new CompanionSettings(Left, Top, _monitor.IsPaused, _scale));
     }
 
+    private void OnIdleLifeTick(object? sender, EventArgs e)
+    {
+        _idleLifeTimer.Stop();
+        if (_activity != ActivityState.Idle || (!_monitor.IsPaused && _monitor.IsTaskActive))
+        {
+            _ambientIdleClip = null;
+            return;
+        }
+
+        if (_dragCandidate
+            || _dragging
+            || _rightDragCandidate
+            || _rightDragging
+            || _pulling
+            || _interactiveMode != InteractiveMode.None
+            || _animations.IsPlaying)
+        {
+            _idleLifeTimer.Interval = TimeSpan.FromMilliseconds(IdleLifePolicy.BusyRetryDelayMilliseconds);
+            _idleLifeTimer.Start();
+            return;
+        }
+
+        var clip = IdleLifePolicy.SelectNextClip(
+            AnimationCatalog.IdleLifeClips.Where(_animations.HasClip),
+            _lastAmbientIdleClip);
+        if (clip is null)
+        {
+            ScheduleIdleLife();
+            return;
+        }
+
+        _ambientIdleClip = clip;
+        if (!_animations.PlayOneShotClip(clip))
+        {
+            _ambientIdleClip = null;
+            ScheduleIdleLife();
+            return;
+        }
+
+        _lastAmbientIdleClip = clip;
+    }
+
+    private void ScheduleIdleLife(bool initial = false)
+    {
+        if (_activity != ActivityState.Idle)
+        {
+            StopIdleLife();
+            return;
+        }
+
+        _idleLifeTimer.Stop();
+        _idleLifeTimer.Interval = IdleLifePolicy.NextDelay(initial);
+        _idleLifeTimer.Start();
+    }
+
+    private void StopIdleLife()
+    {
+        _idleLifeTimer.Stop();
+        _ambientIdleClip = null;
+    }
+
+    private static string IdleLifeLabel(string clip)
+        => clip switch
+        {
+            "idle" => "parpadeando",
+            "idle-breathe" => "respirando",
+            "idle-smile" => "sonriendo",
+            _ => "descansando"
+        };
+
     private void UpdateStatus(ActivityState state, string? suffix = null)
     {
         var label = state switch
@@ -828,6 +946,8 @@ public partial class MainWindow : Window
         _fallbackTimer.Stop();
         _hookPullTimer.Stop();
         _ctrlClickTimer.Stop();
+        _idleLifeTimer.Stop();
+        _idleLifeTimer.Tick -= OnIdleLifeTick;
         _hookLineWindow?.HideHook();
         _hookLineWindow?.Close();
         if (_teleportTargetWindow is not null)

@@ -82,6 +82,17 @@ public sealed class AnimationEngine : IDisposable
         ForceClip(name, loop: true);
     }
 
+    public bool PlayOneShotClip(string name)
+    {
+        if (_forcedClip is not null || !_clips.TryGetValue(name, out var clip))
+        {
+            return false;
+        }
+
+        BeginClip(clip);
+        return true;
+    }
+
     private void ForceClip(string name, bool loop)
     {
         if (!_clips.TryGetValue(name, out var clip)
@@ -281,10 +292,13 @@ public static class AnimationCatalog
     public static readonly IReadOnlyList<string> InteractiveCombatClips =
         ["sword-combo", "bow-shot", "spin-attack", "bomb-shield"];
 
+    public static readonly IReadOnlyList<string> IdleLifeClips =
+        ["idle", "idle-breathe", "idle-smile"];
+
     private static readonly IReadOnlyDictionary<ActivityState, string[]> StateClips =
         new Dictionary<ActivityState, string[]>
         {
-            [ActivityState.Idle] = ["idle", "waiting"],
+            [ActivityState.Idle] = ["idle", "idle-breathe", "idle-smile"],
             [ActivityState.Thinking] = ["fairy-think", "running", "review"],
             [ActivityState.Planning] = ["fairy-think", "review", "bow-shot"],
             [ActivityState.Executing] = ["sword-combo", "spin-attack", "running"],
@@ -301,6 +315,8 @@ public static class AnimationCatalog
         new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
             ["idle"] = 180,
+            ["idle-breathe"] = 210,
+            ["idle-smile"] = 190,
             ["waiting"] = 190,
             ["waving"] = 150,
             ["jumping"] = 120,
