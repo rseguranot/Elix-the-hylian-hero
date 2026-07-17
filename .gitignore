@@ -1,0 +1,20 @@
+# .NET build output
+bin/
+obj/
+TestResults/
+*.pdb
+*.user
+*.suo
+
+# Local IDE state
+.vs/
+.idea/
+.vscode/
+
+# Generated image/QA workspaces
+artifacts/
+
+# Local logs and packages
+*.log
+*.zip
+*.nupkg
