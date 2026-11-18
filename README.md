@@ -17,16 +17,18 @@ Desde PowerShell:
 ```powershell
 git clone https://github.com/rseguranot-creator/Elix-the-hylian-hero.git
 cd .\Elix-the-hylian-hero
-powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\Install.ps1
+& .\installer\Install.ps1
 ```
 
 El instalador compila la versión `Release`, la copia en `%LOCALAPPDATA%\ElixTheHylianHero`, configura el inicio con Windows y activa a Elix. Para instalarlo sin inicio automático:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\Install.ps1 -SkipAutostart
+& .\installer\Install.ps1 -SkipAutostart
 ```
 
 Ejecutar nuevamente el mismo comando actualiza una instalación existente y conserva `settings.json`, incluyendo posición y tamaño.
+
+Para restaurarlo desde cero en otra computadora mediante una conversación nueva de Codex, usa el [prompt autónomo de restauración](PROMPT_RESTAURAR_EN_OTRA_PC.md). Incluye el repositorio, las autorizaciones, las comprobaciones y el procedimiento completo sin depender del contexto de esta conversación.
 
 ## Reacciones
 

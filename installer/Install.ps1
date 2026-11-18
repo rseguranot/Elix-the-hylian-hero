@@ -31,7 +31,8 @@ if (-not (Test-Path -LiteralPath $sourceExe)) {
     throw "No se encontró la publicación de Elix: $sourceExe"
 }
 
-$running = Get-Process -Name 'ElixTheHylianHero','HylianHeroCompanion' -ErrorAction SilentlyContinue
+$running = Get-Process -Name 'ElixTheHylianHero' -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -eq $installedExe }
 if ($running) {
     $running | Stop-Process -Force
     $running | Wait-Process -Timeout 10 -ErrorAction Stop
@@ -47,5 +48,5 @@ if (-not $SkipAutostart) {
     New-ItemProperty -Path $runKey -Name 'ElixTheHylianHero' -Value ('"' + $installedExe + '"') -PropertyType String -Force | Out-Null
 }
 
-Start-Process -FilePath $installedExe -WindowStyle Hidden
+Start-Process -FilePath $installedExe
 Write-Output $installedExe
