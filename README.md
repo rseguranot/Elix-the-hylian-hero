@@ -15,7 +15,7 @@ Requisitos:
 Desde PowerShell:
 
 ```powershell
-git clone https://github.com/rseguranot-creator/Elix-the-hylian-hero.git
+git clone https://github.com/rseguranot/Elix-the-hylian-hero.git
 cd .\Elix-the-hylian-hero
 & .\installer\Install.ps1
 ```

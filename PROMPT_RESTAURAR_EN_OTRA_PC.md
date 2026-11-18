@@ -5,7 +5,7 @@ Copia desde **“Estoy usando Windows…”** hasta el final y pégalo en una co
 ```text
 Estoy usando Windows y quiero restaurar, instalar y activar **Elix — The Hylian Hero** desde su repositorio oficial:
 
-https://github.com/rseguranot-creator/Elix-the-hylian-hero.git
+https://github.com/rseguranot/Elix-the-hylian-hero.git
 
 No tienes contexto previo sobre este proyecto. Trabaja de forma autónoma siguiendo estas instrucciones.
 
